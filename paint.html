@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Microsoft Paint - Windows 11 Edition</title>
+<style>
+    :root {
+        --win-bg: #f3f3f3;
+        --win-accent: #0078d4;
+        --title-bar-bg: #f9f9f9;
+        --border-color: #e5e5e5;
+        --text-color: #333333;
+        --btn-hover-bg: rgba(0, 0, 0, 0.04);
+        --btn-active-bg: rgba(0, 0, 0, 0.08);
+        --btn-border-radius: 4px;
+        --win-border-radius: 8px;
+        --sidebar-bg: #f3f3f3;
+    }
+
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        background-color: #dedede;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Main App Window */
+    #paint-app {
+        width: 1150px;
+        height: 780px;
+        background-color: var(--win-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--win-border-radius);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* Title Bar */
+    .title-bar {
+        height: 38px;
+        background-color: var(--title-bar-bg);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-left: 12px;
+        border-bottom: 1px solid var(--border-color);
+        user-select: none;
+    }
+
+    .title-text {
+        font-size: 13px;
+        color: var(--text-color);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .title-text::before {
+        content: "";
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAYklEQVQ4T2P4//8/AyUYPZ4H1LMAIxt7wP+Z4b+58b85YySjx6N/jB6PBoBoYCQjx6N/jB6PBoBoYCQjx6N/jB6PBoBoYCQjx6N/jB6PBoBoYCQjx6N/jB6PBoBoYCSjyOMHAAi2Y95z8Y5iAAAAAElFTkSuQmCC') no-repeat center;
+        background-size: contain;
+    }
+
+    /* Window Controls */
+    .window-controls {
+        display: flex;
+        height: 100%;
+    }
+
+    .control-btn {
+        width: 46px;
+        height: 38px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.1s;
+    }
+    .control-btn:hover {
+        background-color: var(--btn-hover-bg);
+    }
+    .control-btn.close:hover {
+        background-color: #e81123;
+        color: white;
+    }
+
+    /* Menu Bar */
+    .menu-bar {
+        display: flex;
+        background-color: #f9f9f9;
+        padding: 4px 8px;
+        gap: 12px;
+        border-bottom: 1px solid var(--border-color);
+        user-select: none;
+    }
+
+    .menu-item {
+        font-size: 13px;
+        color: var(--text-color);
+        cursor: pointer;
+        padding: 4px 10px;
+        border-radius: var(--btn-border-radius);
+    }
+    .menu-item:hover {
+        background-color: var(--btn-hover-bg);
+    }
+
+    /* Application Layout Content */
+    .app-content {
+        flex-grow: 1;
+        display: flex;
+        background-color: #f0f0f0;
+        border-bottom: 1px solid var(--border-color);
+        position: relative;
+    }
+
+    /* Windows 11 Toolbar */
+    .toolbar {
+        width: 60px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 10px;
+        background-color: #ffffff;
+        border-right: 1px solid var(--border-color);
+        user-select: none;
+    }
+
+    .tool-btn {
+        width: 44px;
+        height: 44px;
+        margin-bottom: 6px;
+        background-color: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: var(--btn-border-radius);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.1s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .tool-btn:hover {
+        background-color: var(--btn-hover-bg);
+        border-color: #d0d0d0;
+    }
+    .tool-btn.active {
+        background-color: #e1f0fb;
+        border-color: var(--win-accent);
+        box-shadow: 0 1px 3px rgba(0,120,212,0.1);
+    }
+    .tool-btn svg {
+        width: 22px;
+        height: 22px;
+        fill: rgba(0,0,0,0.7);
+    }
+
+    /* Canvas Work Area */
+    .canvas-container {
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background-color: #f0f0f0;
+    }
+
+    .paint-canvas {
+        background-color: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Windows 11 Color Palette */
+    .color-palette {
+        width: 250px;
+        background-color: #ffffff;
+        border-left: 1px solid var(--border-color);
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+    }
+    .color-palette-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 12px;
+    }
+    .color-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 6px;
+    }
+    .color-swatch {
+        width: 26px;
+        height: 26px;
+        border: 1px solid rgba(0,0,0,0.1);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+    .color-swatch:hover {
+        transform: scale(1.1);
+        border-color: rgba(0,0,0,0.3);
+    }
+
+    /* Settings UI (Overlays App Content when 'Settings' menu item is clicked) */
+    .settings-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff;
+        display: none; /* Controlled by JavaScript */
+        z-index: 10;
+    }
+    
+    .settings-layout {
+        display: flex;
+        height: 100%;
+    }
+
+    .settings-sidebar {
+        width: 240px;
+        background-color: var(--sidebar-bg);
+        border-right: 1px solid var(--border-color);
+        padding: 12px 6px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .sidebar-nav-item {
+        padding: 10px 16px;
+        font-size: 14px;
+        color: var(--text-color);
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        user-select: none;
+    }
+    .sidebar-nav-item:hover {
+        background-color: rgba(0,0,0,0.04);
+    }
+    .sidebar-nav-item.active {
+        background-color: rgba(0, 0, 0, 0.06);
+        font-weight: 600;
+        position: relative;
+    }
+    .sidebar-nav-item.active::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 10px;
+        bottom: 10px;
+        width: 3px;
+        background-color: var(--win-accent);
+        border-radius: 2px;
+    }
+
+    .settings-panel-content {
+        flex-grow: 1;
+        padding: 30px 40px;
+        overflow-y: auto;
+        box-sizing: border-box;
+        background-color: #ffffff;
+    }
+
+    .settings-page {
+        display: none;
+    }
+    .settings-page.active {
+        display: block;
+    }
+
+    .settings-title {
+        font-size: 28px;
+        font-weight: 600;
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #111111;
+    }
+
+    .settings-section-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 24px;
+        margin-bottom: 16px;
+    }
+
+    /* Windows 11 Card Layout for items */
+    .settings-card {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .card-title {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .card-desc {
+        font-size: 12px;
+        color: #666666;
+    }
+
+    .settings-select, .settings-btn {
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid #cccccc;
+        background-color: #fafafa;
+        font-size: 14px;
+        font-family: inherit;
+        outline: none;
+        cursor: pointer;
+    }
+    .settings-select:hover, .settings-btn:hover {
+        background-color: #f0f0f0;
+        border-color: #999999;
+    }
+    .settings-btn.primary {
+        background-color: var(--win-accent);
+        color: white;
+        border-color: var(--win-accent);
+    }
+    .settings-btn.primary:hover {
+        background-color: #106ebe;
+    }
+
+    /* Status Bar */
+    .status-bar {
+        height: 30px;
+        background-color: #f9f9f9;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        padding-left: 12px;
+        font-size: 12px;
+        color: rgba(0,0,0,0.6);
+        user-select: none;
+    }
+</style>
+</head>
+<body>
+
+<div id="paint-app">
+    <div class="title-bar">
+        <div class="title-text" id="appTitle">Microsoft Paint - Windows 11 Edition</div>
+        <div class="window-controls">
+            <button class="control-btn" title="Minimize">
+                <svg viewBox="0 0 24 24" width="14" height="14"><line x1="4" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+            <button class="control-btn" title="Maximize">
+                <svg viewBox="0 0 24 24" width="14" height="14"><rect x="4" y="4" width="16" height="16" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            </button>
+            <button class="control-btn close" title="Close" onclick="closeApp()">
+                <svg viewBox="0 0 24 24" width="14" height="14"><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="1.5"/><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="menu-bar">
+        <div class="menu-item" onclick="hideSettings()">File</div>
+        <div class="menu-item" onclick="hideSettings()">Edit</div>
+        <div class="menu-item" onclick="hideSettings()">View</div>
+        <div class="menu-item" onclick="hideSettings()">Image</div>
+        <div class="menu-item" onclick="hideSettings()">Colors</div>
+        <div class="menu-item" onclick="showSettings()">Settings</div>
+    </div>
+
+    <div class="app-content">
+        
+        <div class="toolbar">
+            <button class="tool-btn" title="Pencil">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            </button>
+            <button class="tool-btn active" title="Brush">
+                <svg viewBox="0 0 24 24"><path d="M16 11l-2 2-7-7V4l5 5h3l3-1z"/><path d="M22.5 1.5l-4 4L16 3l-1.5 1.5 4 4 4-4z"/><circle cx="10" cy="17" r="5"/><circle cx="16" cy="18" r="3"/><circle cx="5" cy="11" r="2"/></svg>
+            </button>
+            <button class="tool-btn" title="Eraser">
+                <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2zm-2.22-6.22l2.34 2.34c.39.39.39 1.02 0 1.41L12.41 17.1c-.39.39-1.02.39-1.41 0L4.78 10.88c-.39-.39-.39-1.02 0-1.41l6.34-6.34c.39-.39 1.02-.39 1.41 0L16.78 6.78z"/></svg>
+            </button>
+            <button class="tool-btn" title="Text">
+                <svg viewBox="0 0 24 24"><path d="M4 3v3h16V3H4zm2 5v13h4V8H6zm6 0v13h4V8h-4zm6 0v13h4V8h-4z"/></svg>
+            </button>
+            <button class="tool-btn" title="Fill Bucket">
+                <svg viewBox="0 0 24 24"><path d="M16 17v-4.6l-5-5V4l4 4 1-1h1.6l4 4-1 1zm0 2h3.6l1 1h.4V4h-.4l-1 1zm-4-4l-3-3V4H4v13l3 3 2-2zM4.6 20h3l1-1h-.4V4h.4l-1-1z"/></svg>
+            </button>
+            <button class="tool-btn" title="Line">
+                <svg viewBox="0 0 24 24"><path d="M4 19L19 4"/></svg>
+            </button>
+            <button class="tool-btn" title="Rectangle">
+                <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            </button>
+            <button class="tool-btn" title="Ellipse">
+                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="6" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+            </button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="mainCanvas" class="paint-canvas" width="650" height="420"></canvas>
+        </div>
+
+        <div class="color-palette">
+            <div class="color-palette-title">Color Palette</div>
+            <div class="color-grid">
+                <div class="color-swatch" style="background-color: #ffffff;"></div>
+                <div class="color-swatch" style="background-color: #000000;"></div>
+                <div class="color-swatch" style="background-color: #bfbfbf;"></div>
+                <div class="color-swatch" style="background-color: #808080;"></div>
+                <div class="color-swatch" style="background-color: #f00000;"></div>
+                <div class="color-swatch" style="background-color: #800000;"></div>
+                <div class="color-swatch" style="background-color: #f0f000;"></div>
+                <div class="color-swatch" style="background-color: #808000;"></div>
+                <div class="color-swatch" style="background-color: #00f000;"></div>
+                <div class="color-swatch" style="background-color: #008000;"></div>
+                <div class="color-swatch" style="background-color: #00f0f0;"></div>
+                <div class="color-swatch" style="background-color: #008080;"></div>
+                <div class="color-swatch" style="background-color: #0000f0;"></div>
+                <div class="color-swatch" style="background-color: #000080;"></div>
+                <div class="color-swatch" style="background-color: #f000f0;"></div>
+                <div class="color-swatch" style="background-color: #800080;"></div>
+                <div class="color-swatch" style="background-color: #f0fbcc;"></div>
+                <div class="color-swatch" style="background-color: #a0a000;"></div>
+                <div class="color-swatch" style="background-color: #00fbcc;"></div>
+                <div class="color-swatch" style="background-color: #008080;"></div>
+                <div class="color-swatch" style="background-color: #00fbfd;"></div>
+                <div class="color-swatch" style="background-color: #0080f0;"></div>
+                <div class="color-swatch" style="background-color: #f0fbcc;"></div>
+                <div class="color-swatch" style="background-color: #c0fbe0;"></div>
+            </div>
+        </div>
+
+        <div id="settingsOverlay" class="settings-overlay">
+            <div class="settings-layout">
+                <div class="settings-sidebar">
+                    <div class="sidebar-nav-item active" onclick="switchSettingsPage('system', this)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2zm1 17.93V13h5.93A8.001 8.001 0 0 1 13 19.93zm-2 0A8.001 8.001 0 0 1 5 13h6v6.93zm-6-8.93A8.001 8.001 0 0 1 11 4v6H5v.93zm8-6.93a8.001 8.001 0 0 1 6 6.93H13V4z"/></svg>
+                        System
+                    </div>
+                    <div class="sidebar-nav-item" onclick="switchSettingsPage('language', this)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.92 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.33-.14 2 0 .67.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.3.79 2.51 1.38 3.56A8.03 8.03 0 0 1 5.08 16zm2.95-8H5.08a8.03 8.03 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.34-.16-2 0-.66.07-1.34.16-2h4.68c.09.66.16 1.34.16 2 0 .66-.07 1.34-.16 2zm.28 5.56c.59-1.05 1.06-2.26 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.33.14-2 0-.67-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
+                        Time & Language
+                    </div>
+                </div>
+
+                <div class="settings-panel-content">
+                    
+                    <div id="page-system" class="settings-page active">
+                        <h1 class="settings-title">System</h1>
+                        <div class="settings-card">
+                            <div class="card-info">
+                                <div class="card-title">Device Specifications</div>
+                                <div class="card-desc">Processor: Virtual ARM Snapdragon Core &bull; Installed RAM: 16.0 GB</div>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <div class="card-info">
+                                <div class="card-title">System Type</div>
+                                <div class="card-desc">64-bit operating system, ARM-based processor</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="page-language" class="settings-page">
+                        <h1 class="settings-title">Time & Language</h1>
+                        <div class="settings-section-title">Language & Region</div>
+                        
+                        <div class="settings-card">
+                            <div class="card-info">
+                                <div class="card-title">Windows display language</div>
+                                <div class="card-desc">Windows features will appear in this language.</div>
+                            </div>
+                            <select class="settings-select">
+                                <option value="en-US">English (United States)</option>
+                                <option value="zh-TW">中文 (台灣)</option>
+                                <option value="ja-JP">日本語</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="card-info">
+                                <div class="card-title">Preferred languages</div>
+                                <div class="card-desc">Apps and websites will appear in the first language listed that they support.</div>
+                            </div>
+                            <button class="settings-btn primary">+ Add a language</button>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="card-info">
+                                <div class="card-title">Country or region</div>
+                                <div class="card-desc">Windows and apps might use your country or region to give you local content.</div>
+                            </div>
+                            <select class="settings-select">
+                                <option value="US">United States</option>
+                                <option value="TW">Taiwan</option>
+                                <option value="JP">Japan</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="status-bar" id="statusBar">
+        User: RyanC / Windows 11 Paint Edition (1.0)
+    </div>
+</div>
+
+<script>
+    // Simple Toolbar Selection logic
+    const toolButtons = document.querySelectorAll('.tool-btn');
+    toolButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            toolButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Color Swatch Selection Tracker
+    const swatches = document.querySelectorAll('.color-swatch');
+    swatches.forEach(swatch => {
+        swatch.addEventListener('click', function() {
+            const selectedColor = this.style.backgroundColor;
+            console.log("Selected Color color tracker:", selectedColor);
+        });
+    });
+
+    // Control Setting Overlay View Actions
+    function showSettings() {
+        document.getElementById('settingsOverlay').style.display = 'block';
+    }
+
+    function hideSettings() {
+        document.getElementById('settingsOverlay').style.display = 'none';
+    }
+
+    function closeApp() {
+        // Mock closing window
+        document.getElementById('paint-app').style.opacity = '0.5';
+        alert("App closed signal triggered.");
+    }
+
+    // Windows 11 Sidebar Page Switch Routing Logic
+    function switchSettingsPage(pageId, navElement) {
+        // Toggle Sidebar Active States
+        const navItems = document.querySelectorAll('.sidebar-nav-item');
+        navItems.forEach(item => item.classList.remove('active'));
+        navElement.classList.add('active');
+
+        // Toggle Content Panels Visible state
+        const pages = document.querySelectorAll('.settings-page');
+        pages.forEach(page => page.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+    }
+
+    // Window Draggable Wrapper Feature
+    const appWindow = document.getElementById('paint-app');
+    const titleBar = document.querySelector('.title-bar');
+    let isDragging = false;
+    let initialX, initialY, offsetX = 0, offsetY = 0;
+
+    titleBar.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+
+    function dragStart(e) {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        isDragging = true;
+        initialX = e.clientX - offsetX;
+        initialY = e.clientY - offsetY;
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            offsetX = e.clientX - initialX;
+            offsetY = e.clientY - initialY;
+            appWindow.style.transform = `translate(${offsetX}px, ${offsetY}px)`;
+        }
+    }
+
+    function dragEnd() {
+        isDragging = false;
+    }
+</script>
+
+</body>
+</html>
